@@ -8,6 +8,13 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingClassifier
 
+COLOR_SEQ_BLUES = px.colors.sequential.Blues
+COLOR_DIV_RED_BLUE = ["#B2182B", "#F7F7F7", "#2166AC"]
+COLOR_CATEGORICAL = px.colors.qualitative.Set2
+COLOR_HIGHLIGHT = "#F39C12"
+COLOR_ALERT = "#E74C3C"
+COLOR_BLUE_ACCENT = "#1B4F72"
+
 st.set_page_config(
     page_title="Análisis EDA – Restaurantes en California",
     page_icon="📊",
@@ -198,7 +205,7 @@ def main():
                 color="count",
                 title=f"Distribución de calificaciones de restaurantes{title_suffix}",
                 labels={"stars": "Calificación (Estrellas)"},
-                color_continuous_scale="Reds",
+                color_continuous_scale=COLOR_SEQ_BLUES,
                 size_max=50,
             )
             fig.update_traces(
@@ -248,12 +255,13 @@ def main():
                 hist_df,
                 x="review_range",
                 y="count",
+                color="count",
                 title=f"Distribución del número de reseñas{title_suffix}",
                 labels={
                     "review_range": "Rango de número de reseñas",
                     "count": "Cantidad de restaurantes",
                 },
-                color_discrete_sequence=["#4ECDC4"],
+                color_continuous_scale=COLOR_SEQ_BLUES,
             )
 
             fig.update_traces(
@@ -293,7 +301,7 @@ def main():
                     "review_count": "Número de reseñas",
                     "stars": "Calificación (Estrellas)",
                 },
-                color_discrete_sequence=["#9B59B6"],
+                color_discrete_sequence=[COLOR_HIGHLIGHT],
             )
             fig.update_traces(
                 hovertemplate="<b>%{customdata[0]}</b><br>"
@@ -316,7 +324,7 @@ def main():
                     names=proportion_high_rating_by_city.index,
                     values=proportion_high_rating_by_city.values,
                     title="Proporción de restaurantes con calificación ≥ 4 estrellas en las 10 principales ciudades",
-                    color_discrete_sequence=px.colors.sequential.YlOrRd,
+                    color_discrete_sequence=COLOR_DIV_RED_BLUE,
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -330,7 +338,7 @@ def main():
                     names=["Calificación ≥ 4", "Calificación < 4"],
                     values=[high_rating_count, total_count - high_rating_count],
                     title=f"Proporción de restaurantes con calificación ≥ 4 estrellas en {selected_city}",
-                    color_discrete_sequence=px.colors.sequential.YlOrRd,
+                    color_discrete_sequence=COLOR_DIV_RED_BLUE,
                 )
                 st.plotly_chart(fig, use_container_width=True)
                 st.info(
@@ -389,7 +397,10 @@ def main():
                     title="Distribución de lugares abiertos y cerrados por ciudad (Top 15)",
                     labels={"Cantidad": "Número de lugares", "Ciudad": "Ciudad"},
                     barmode="group",
-                    color_discrete_map={"Abiertos": "#2ecc71", "Cerrados": "#e74c3c"},
+                    color_discrete_map={
+                        "Abiertos": COLOR_BLUE_ACCENT,
+                        "Cerrados": COLOR_HIGHLIGHT,
+                    },
                     hover_data=["Promedio reseñas"],
                 )
 
@@ -473,7 +484,10 @@ def main():
                     title=f"Distribución de lugares abiertos y cerrados en {selected_city}",
                     labels={"Cantidad": "Número de lugares"},
                     color="Estado",
-                    color_discrete_map={"Abiertos": "#2ecc71", "Cerrados": "#e74c3c"},
+                    color_discrete_map={
+                        "Abiertos": COLOR_BLUE_ACCENT,
+                        "Cerrados": COLOR_HIGHLIGHT,
+                    },
                     hover_data=["Promedio reseñas"],
                 )
 
