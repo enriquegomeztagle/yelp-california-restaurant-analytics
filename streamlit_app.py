@@ -175,9 +175,8 @@ def main():
             "Distribución de calificaciones",
             "Distribución de reseñas",
             "Relación reseñas vs calificaciones",
-            "Top categorías",
-            "Promedio de calificaciones por ciudad",
             "Proporción de altas calificaciones por ciudad",
+            "Estado y reseñas por ciudad",
             "Predicción de popularidad",
         ]
     )
@@ -202,9 +201,20 @@ def main():
                 color_continuous_scale="Reds",
                 size_max=50,
             )
-            fig.update_traces(marker=dict(symbol="star", line=dict(width=0)))
+            fig.update_traces(
+                marker=dict(symbol="star", line=dict(width=0)),
+                hovertemplate="<b>Calificación: %{x} estrellas</b><br>"
+                + "Cantidad de restaurantes: %{marker.size}<br>"
+                + "<extra></extra>",
+                text=None,
+                showlegend=False,
+            )
             fig.update_yaxes(visible=False, showticklabels=False, range=[0.5, 1.5])
-            fig.update_xaxes(range=[df["stars"].min() - 0.3, df["stars"].max() + 0.3])
+            fig.update_xaxes(
+                range=[df["stars"].min() - 0.3, df["stars"].max() + 0.3],
+                tickangle=-90,
+                tickfont=dict(size=12),
+            )
             fig.update_layout(height=400, showlegend=True)
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -220,10 +230,15 @@ def main():
             total = len(df)
             percentages = (counts / total) * 100
 
-            bin_centers = (bins[:-1] + bins[1:]) / 2
+            bin_labels = []
+            for left, right in zip(bins[:-1], bins[1:]):
+                left_int = int(left)
+                right_int = int(right)
+                bin_labels.append(f"{left_int}–{right_int}")
+
             hist_df = pd.DataFrame(
                 {
-                    "review_count": bin_centers,
+                    "review_range": bin_labels,
                     "count": counts,
                     "percentage": percentages,
                 }
@@ -231,24 +246,30 @@ def main():
 
             fig = px.bar(
                 hist_df,
-                x="review_count",
+                x="review_range",
                 y="count",
                 title=f"Distribución del número de reseñas{title_suffix}",
-                labels={"review_count": "Número de reseñas", "count": "Frecuencia"},
+                labels={
+                    "review_range": "Rango de número de reseñas",
+                    "count": "Cantidad de restaurantes",
+                },
                 color_discrete_sequence=["#4ECDC4"],
             )
 
             fig.update_traces(
-                texttemplate="%{y}<br>(%{customdata:.1f}%)",
-                textposition="outside",
                 customdata=hist_df["percentage"],
+                hovertemplate="<b>Rango: %{x}</b><br>"
+                + "Cantidad de restaurantes: %{y}<br>"
+                + "Porcentaje: %{customdata:.1f}%<extra></extra>",
+                text=None,
             )
 
             fig.update_layout(
-                yaxis_title="Frecuencia",
+                yaxis_title="Cantidad de restaurantes",
                 hovermode="x unified",
                 showlegend=False,
-                height=500,
+                height=700,
+                xaxis=dict(tickangle=-30, tickfont=dict(size=12)),
             )
 
             st.plotly_chart(fig, use_container_width=True)
@@ -286,104 +307,6 @@ def main():
             st.warning("No hay datos disponibles para la ciudad seleccionada.")
 
     with tabs[3]:
-        st.subheader("Número de restaurantes distribuidos por ciudad")
-        if len(df) > 0:
-            if selected_city == "Todo el estado":
-                restaurants_by_city = (
-                    df["city"].value_counts().sort_values(ascending=False)
-                )
-                total_restaurants = len(df)
-                percentages = (restaurants_by_city.values / total_restaurants) * 100
-
-                fig = px.bar(
-                    x=restaurants_by_city.index,
-                    y=restaurants_by_city.values,
-                    labels={"x": "Ciudad", "y": "Número de restaurantes"},
-                    title="Distribución de restaurantes por ciudad",
-                    color_discrete_sequence=["#FFA500"],
-                )
-                fig.update_traces(
-                    texttemplate="%{y}<br>(%{customdata:.1f}%)",
-                    textposition="outside",
-                    customdata=percentages,
-                )
-
-                fig.update_layout(xaxis_tickangle=-45, showlegend=False, height=500)
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                total_restaurants = len(df)
-                city_name = selected_city
-
-                fig = px.bar(
-                    x=[city_name],
-                    y=[total_restaurants],
-                    labels={"x": "Ciudad", "y": "Número de restaurantes"},
-                    title=f"Número de restaurantes en {city_name}",
-                    color_discrete_sequence=["#FFA500"],
-                )
-
-                fig.update_traces(
-                    texttemplate="%{y} restaurantes", textposition="outside"
-                )
-
-                fig.update_layout(showlegend=False, height=400)
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("No hay datos disponibles para la ciudad seleccionada.")
-
-    with tabs[4]:
-        st.subheader("Promedio de calificaciones por ciudad (Top 10)")
-        if selected_city == "Todo el estado":
-            if len(avg_rating_by_city) > 0:
-                percentages = (avg_rating_by_city.values / 5.0) * 100
-
-                fig = px.bar(
-                    x=avg_rating_by_city.values,
-                    y=avg_rating_by_city.index,
-                    orientation="h",
-                    labels={"x": "Promedio de calificaciones", "y": "Ciudad"},
-                    title="Promedio de calificaciones en las 10 ciudades con más restaurantes",
-                    color_discrete_sequence=["#AA96DA"],
-                )
-
-                fig.update_traces(
-                    texttemplate="%{x:.2f}<br>(%{customdata:.1f}%)",
-                    textposition="outside",
-                    customdata=percentages,
-                )
-
-                fig.update_layout(showlegend=False, height=650)
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.warning("No hay datos disponibles.")
-        else:
-            if len(df) > 0:
-                avg_rating = df["stars"].mean()
-                percentage = (avg_rating / 5.0) * 100
-
-                fig = px.bar(
-                    x=[avg_rating],
-                    y=[selected_city],
-                    orientation="h",
-                    labels={"x": "Promedio de calificaciones", "y": "Ciudad"},
-                    title=f"Promedio de calificaciones en {selected_city}",
-                    color_discrete_sequence=["#AA96DA"],
-                )
-                fig.update_traces(
-                    texttemplate="%{x:.2f}<br>(%{customdata:.1f}%)",
-                    textposition="outside",
-                    customdata=[percentage],
-                )
-
-                fig.update_layout(showlegend=False, height=650)
-                st.plotly_chart(fig, use_container_width=True)
-                st.info(
-                    f"Promedio de calificaciones en {selected_city}: {avg_rating:.2f} estrellas ({percentage:.1f}% del máximo)"
-                )
-            else:
-                st.warning("No hay datos disponibles para la ciudad seleccionada.")
-
-    with tabs[5]:
         st.subheader(
             "Proporción de restaurantes con alta calificación por ciudad (Top 10)"
         )
@@ -416,7 +339,165 @@ def main():
             else:
                 st.warning("No hay datos disponibles para la ciudad seleccionada.")
 
-    with tabs[6]:
+    with tabs[4]:
+        st.subheader("Estado y reseñas por ciudad")
+        if len(df) > 0:
+            if selected_city == "Todo el estado":
+                top_cities = df["city"].value_counts().head(15).index.tolist()
+                df_cities = df[df["city"].isin(top_cities)].copy()
+
+                city_status_data = []
+                for city in top_cities:
+                    city_df = df_cities[df_cities["city"] == city]
+
+                    abiertos = city_df[city_df["is_open"] == 1]
+                    abiertos_count = len(abiertos)
+                    abiertos_avg_reviews = (
+                        abiertos["review_count"].mean() if abiertos_count > 0 else 0
+                    )
+
+                    cerrados = city_df[city_df["is_open"] == 0]
+                    cerrados_count = len(cerrados)
+                    cerrados_avg_reviews = (
+                        cerrados["review_count"].mean() if cerrados_count > 0 else 0
+                    )
+
+                    city_status_data.append(
+                        {
+                            "Ciudad": city,
+                            "Estado": "Abiertos",
+                            "Cantidad": abiertos_count,
+                            "Promedio reseñas": abiertos_avg_reviews,
+                        }
+                    )
+                    city_status_data.append(
+                        {
+                            "Ciudad": city,
+                            "Estado": "Cerrados",
+                            "Cantidad": cerrados_count,
+                            "Promedio reseñas": cerrados_avg_reviews,
+                        }
+                    )
+
+                df_status = pd.DataFrame(city_status_data)
+
+                fig = px.bar(
+                    df_status,
+                    x="Ciudad",
+                    y="Cantidad",
+                    color="Estado",
+                    title="Distribución de lugares abiertos y cerrados por ciudad (Top 15)",
+                    labels={"Cantidad": "Número de lugares", "Ciudad": "Ciudad"},
+                    barmode="group",
+                    color_discrete_map={"Abiertos": "#2ecc71", "Cerrados": "#e74c3c"},
+                    hover_data=["Promedio reseñas"],
+                )
+
+                fig.update_traces(
+                    hovertemplate="<b>%{x}</b><br>"
+                    + "Estado: %{fullData.name}<br>"
+                    + "Cantidad: %{y}<br>"
+                    + "Promedio reseñas: %{customdata[0]:.1f}<extra></extra>",
+                    customdata=df_status[["Promedio reseñas"]].values,
+                )
+
+                fig.update_layout(
+                    xaxis=dict(tickangle=-90, tickfont=dict(size=12)),
+                    height=600,
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                    ),
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+                st.subheader("Detalles por ciudad")
+                summary_table = []
+                for city in top_cities:
+                    city_df = df_cities[df_cities["city"] == city]
+                    abiertos = city_df[city_df["is_open"] == 1]
+                    cerrados = city_df[city_df["is_open"] == 0]
+
+                    summary_table.append(
+                        {
+                            "Ciudad": city,
+                            "Total": len(city_df),
+                            "Abiertos": len(abiertos),
+                            "Cerrados": len(cerrados),
+                            "% Abiertos": f"{(len(abiertos)/len(city_df)*100):.1f}%",
+                            "Promedio reseñas (Abiertos)": (
+                                f"{abiertos['review_count'].mean():.1f}"
+                                if len(abiertos) > 0
+                                else "N/A"
+                            ),
+                            "Promedio reseñas (Cerrados)": (
+                                f"{cerrados['review_count'].mean():.1f}"
+                                if len(cerrados) > 0
+                                else "N/A"
+                            ),
+                        }
+                    )
+
+                summary_df = pd.DataFrame(summary_table)
+                st.dataframe(summary_df, use_container_width=True, hide_index=True)
+            else:
+                city_df = df.copy()
+
+                abiertos = city_df[city_df["is_open"] == 1]
+                abiertos_count = len(abiertos)
+                abiertos_avg_reviews = (
+                    abiertos["review_count"].mean() if abiertos_count > 0 else 0
+                )
+
+                cerrados = city_df[city_df["is_open"] == 0]
+                cerrados_count = len(cerrados)
+                cerrados_avg_reviews = (
+                    cerrados["review_count"].mean() if cerrados_count > 0 else 0
+                )
+
+                status_data = pd.DataFrame(
+                    {
+                        "Estado": ["Abiertos", "Cerrados"],
+                        "Cantidad": [abiertos_count, cerrados_count],
+                        "Promedio reseñas": [
+                            abiertos_avg_reviews,
+                            cerrados_avg_reviews,
+                        ],
+                    }
+                )
+
+                fig = px.bar(
+                    status_data,
+                    x="Estado",
+                    y="Cantidad",
+                    title=f"Distribución de lugares abiertos y cerrados en {selected_city}",
+                    labels={"Cantidad": "Número de lugares"},
+                    color="Estado",
+                    color_discrete_map={"Abiertos": "#2ecc71", "Cerrados": "#e74c3c"},
+                    hover_data=["Promedio reseñas"],
+                )
+
+                fig.update_traces(
+                    texttemplate="%{y}<br>Promedio reseñas: %{customdata[0]:.1f}",
+                    textposition="outside",
+                    customdata=status_data[["Promedio reseñas"]].values,
+                )
+
+                fig.update_layout(showlegend=False, height=500)
+
+                st.plotly_chart(fig, use_container_width=True)
+
+                total = len(city_df)
+                st.info(
+                    f"**{selected_city}:**\n"
+                    f"- Total de lugares: {total}\n"
+                    f"- Abiertos: {abiertos_count} ({abiertos_count/total*100:.1f}%) - Promedio reseñas: {abiertos_avg_reviews:.1f}\n"
+                    f"- Cerrados: {cerrados_count} ({cerrados_count/total*100:.1f}%) - Promedio reseñas: {cerrados_avg_reviews:.1f}"
+                )
+        else:
+            st.warning("No hay datos disponibles para la ciudad seleccionada.")
+
+    with tabs[5]:
         st.subheader("Predicción de popularidad de un restaurante")
         st.markdown(
             """
