@@ -563,7 +563,6 @@ def show_prediction_interface(
 
 def main():
     st.title("Dashboard EDA - Restaurantes California")
-    st.markdown("Metodología CRISP-DM para análisis de datos de Yelp")
 
     data_load_state = st.text("Cargando datos...")
     df_full = load_data()
