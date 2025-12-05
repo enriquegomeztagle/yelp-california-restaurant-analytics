@@ -236,7 +236,7 @@ def show_eda_statistics(df: pd.DataFrame):
 
     with col2:
         st.markdown("**Tipos de Datos:**")
-        dtypes_df = df.dtypes.value_counts().reset_index()
+        dtypes_df = df.dtypes.astype(str).value_counts().reset_index()
         dtypes_df.columns = ["Tipo", "Cantidad"]
         st.dataframe(dtypes_df, hide_index=True)
 
@@ -281,7 +281,7 @@ def show_correlation_matrix(df: pd.DataFrame):
             title="Matriz de Correlación",
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
     else:
         st.warning("No hay suficientes columnas numéricas para correlación.")
 
@@ -313,7 +313,7 @@ def show_distribution_stars(df: pd.DataFrame, selected_city: str):
     fig.update_traces(marker={"symbol": "star", "line": {"width": 0}})
     fig.update_yaxes(visible=False, range=[0.5, 1.5])
     fig.update_layout(height=400)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
     col1, col2 = st.columns(2)
 
@@ -326,7 +326,7 @@ def show_distribution_stars(df: pd.DataFrame, selected_city: str):
             labels={"stars": "Estrellas", "count": "Conteo"},
             color_discrete_sequence=[COLOR_BLUE_ACCENT],
         )
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist)
 
     with col2:
         fig_box = px.box(
@@ -336,7 +336,7 @@ def show_distribution_stars(df: pd.DataFrame, selected_city: str):
             labels={"stars": "Estrellas"},
             color_discrete_sequence=[COLOR_HIGHLIGHT],
         )
-        st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box)
 
 
 def show_distribution_reviews(df: pd.DataFrame, selected_city: str):
@@ -374,7 +374,7 @@ def show_distribution_reviews(df: pd.DataFrame, selected_city: str):
         color_continuous_scale=px.colors.sequential.Viridis,
     )
     fig.update_layout(height=500, xaxis={"tickangle": -30})
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -405,7 +405,7 @@ def show_reviews_vs_stars(df: pd.DataFrame, selected_city: str):
         labels={"review_count": "Número de reseñas", "stars": "Estrellas"},
         color_discrete_sequence=[COLOR_HIGHLIGHT],
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
     st.markdown("**Análisis de Tendencia (línea de regresión):**")
     fig_trend = px.scatter(
@@ -421,7 +421,7 @@ def show_reviews_vs_stars(df: pd.DataFrame, selected_city: str):
     for trace in fig_trend.data:
         if trace.mode == "lines":
             trace.line.color = COLOR_ALERT
-    st.plotly_chart(fig_trend, use_container_width=True)
+    st.plotly_chart(fig_trend)
 
 
 def show_high_rating_proportion(
@@ -438,7 +438,7 @@ def show_high_rating_proportion(
                 color_discrete_sequence=COLOR_CATEGORICAL,
             )
             fig.update_traces(textposition="inside", textinfo="percent+label")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
         else:
             st.warning("No hay datos disponibles.")
     else:
@@ -453,7 +453,7 @@ def show_high_rating_proportion(
                 title=f"Proporción en {selected_city}",
                 color_discrete_sequence=COLOR_DIV_RED_BLUE,
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
             st.info(
                 f"En {selected_city}: {high_count}/{total} ({proportion*100:.1f}%) tienen ≥ 4 estrellas"
             )
@@ -515,7 +515,7 @@ def show_city_status(df: pd.DataFrame, selected_city: str):
             },
         )
         fig.update_layout(xaxis={"tickangle": -90}, height=600)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
         st.subheader("Detalles por Ciudad")
         summary = []
@@ -532,7 +532,7 @@ def show_city_status(df: pd.DataFrame, selected_city: str):
                     "% Abiertos": f"{len(abiertos)/len(city_df)*100:.1f}%",
                 }
             )
-        st.dataframe(pd.DataFrame(summary), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(summary), width="stretch", hide_index=True)
     else:
         abiertos = df[df["is_open"] == 1]
         cerrados = df[df["is_open"] == 0]
@@ -560,7 +560,7 @@ def show_city_status(df: pd.DataFrame, selected_city: str):
             },
         )
         fig.update_layout(showlegend=False, height=500)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
         total = len(df)
         st.info(
@@ -568,6 +568,7 @@ def show_city_status(df: pd.DataFrame, selected_city: str):
         )
 
 
+@st.fragment
 def show_prediction_interface(
     model, category_columns_pred: list, df_full: pd.DataFrame
 ):
@@ -599,7 +600,7 @@ def show_prediction_interface(
         )
         st.markdown("**Servicios de comida:**")
         has_delivery = st.checkbox("Delivery")
-        has_takeout = st.checkbox("Takeout", value=True)
+        has_takeout = st.checkbox("Takeout")
         outdoor_seating = st.checkbox("Terraza")
     
     col3, col4 = st.columns(2)
@@ -643,27 +644,30 @@ def show_prediction_interface(
 
     input_df = pd.DataFrame(input_data)
 
-    if st.button("Predecir", type="primary"):
+    if st.button("Predecir", type="primary", key="predict_button"):
         prob = model.predict_proba(input_df)[0][1]
         threshold = 0.53
         result = "Popular" if prob >= threshold else "No Popular"
+        
+        st.session_state.prediction_result = result
+        st.session_state.prediction_prob = prob
 
+    if "prediction_result" in st.session_state:
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("Probabilidad", f"{prob:.2%}")
+            st.metric("Probabilidad", f"{st.session_state.prediction_prob:.2%}")
         with col2:
-            if result == "Popular":
-                st.success(f"**{result}** ✅")
+            if st.session_state.prediction_result == "Popular":
+                st.success(f"**{st.session_state.prediction_result}** ✅")
             else:
-                st.warning(f"**{result}** ⚠️")
+                st.warning(f"**{st.session_state.prediction_result}** ⚠️")
 
 
 def main():
     st.title("Dashboard EDA - Restaurantes California")
 
-    data_load_state = st.text("Cargando datos...")
     df_full = load_data()
-    data_load_state.text("Datos cargados")
+    model, category_columns_pred = train_popularity_model(df_full.copy())
 
     st.sidebar.header("Filtros")
     city_options = ["Todo el estado"] + sorted(
@@ -679,7 +683,6 @@ def main():
     processed = prepare_data(df)
     df = processed["df"]
     proportion_high_rating_by_city = processed["proportion_high_rating_by_city"]
-    model, category_columns_pred = train_popularity_model(df_full.copy())
 
     tabs = st.tabs(
         [
