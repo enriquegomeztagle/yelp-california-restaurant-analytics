@@ -203,9 +203,11 @@ def show_correlation_matrix(df: pd.DataFrame):
 
     if len(available_cols) >= 2:
         corr = df[available_cols].corr()
+        mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
+        corr_masked = corr.mask(mask)
 
         fig = px.imshow(
-            corr,
+            corr_masked,
             text_auto=".2f",
             color_continuous_scale="Viridis",
             zmin=-1,
