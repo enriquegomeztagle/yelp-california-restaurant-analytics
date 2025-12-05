@@ -123,11 +123,9 @@ def train_popularity_model(dataframe: pd.DataFrame):
         df_copy["num_categories"] = 0
 
     feature_cols = [
-        "stars",
         "num_categories",
         "latitude",
         "longitude",
-        "is_open_binary",
         "city",
     ] + category_columns
 
@@ -135,8 +133,8 @@ def train_popularity_model(dataframe: pd.DataFrame):
     y = df_copy["popular"]
 
     categorical_cols = ["city"]
-    numeric_cols = ["stars", "num_categories", "latitude", "longitude"]
-    binary_cols = ["is_open_binary"] + category_columns
+    numeric_cols = ["num_categories", "latitude", "longitude"]
+    binary_cols = category_columns
 
     preprocess = ColumnTransformer(
         [
@@ -520,30 +518,20 @@ def show_prediction_interface(
         city_selected = st.selectbox(
             "Ciudad", sorted(df_full["city"].dropna().unique())
         )
-        stars_input = st.slider(
-            "Calificación (estrellas)",
-            min_value=float(df_full["stars"].min()),
-            max_value=float(df_full["stars"].max()),
-            value=4.0,
-            step=0.1,
-        )
-        is_open_choice = st.radio("¿Está abierto?", ("Sí", "No"))
+        latitude = st.number_input("Latitud", value=float(df_full["latitude"].median()))
 
     with col2:
         categories_selected = st.multiselect(
             "Categorías", sorted(category_columns_pred)
         )
-        latitude = st.number_input("Latitud", value=float(df_full["latitude"].median()))
         longitude = st.number_input(
             "Longitud", value=float(df_full["longitude"].median())
         )
 
     input_data = {
-        "stars": [stars_input],
         "num_categories": [len(categories_selected)],
         "latitude": [latitude],
         "longitude": [longitude],
-        "is_open_binary": [1 if is_open_choice == "Sí" else 0],
         "city": [city_selected],
     }
     for col in category_columns_pred:
