@@ -7,6 +7,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingClassifier
+from data_preparation import ALLOWED_CATEGORIES
 
 COLOR_SEQ_BLUES = px.colors.sequential.Blues
 COLOR_DIV_RED_BLUE = ["#B2182B", "#4393C3", "#053061"]
@@ -44,7 +45,9 @@ def get_category_columns(df: pd.DataFrame, exclude_cols: list) -> list:
     category_columns = [
         col
         for col in df.columns
-        if df[col].dropna().isin([0, 1]).all() and col not in exclude_cols
+        if df[col].dropna().isin([0, 1]).all() 
+        and col not in exclude_cols
+        and col in ALLOWED_CATEGORIES
     ]
     return category_columns
 
